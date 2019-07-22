@@ -1,0 +1,157 @@
+<html>
+<head>
+  <title>CSO Programming Assignments - Fall 2017</title>
+  <meta http-equiv="pragma" content="no-cache">
+  	<link rel="stylesheet" type="text/css" href="css/sty2.css" />
+</head>
+<div id="header">
+<h1>-- Lab1: Some exercises in C (due 9/27) --</h1>
+</div>
+
+<div id="onecolumn">
+<a name="labs">
+<h2>Cloning your git repo</h2>
+
+<p>Type the following in your virtual machine:</p>
+<pre>
+$ cd ~ 
+$ git clone https://github.com/nyu-cso-17fall/labs-&lt;YourGithubUsername&gt;.git
+$ cd labs-&lt;YourGithubUsername&gt;
+</pre>
+
+You will see that a directory named <tt>labs-&lt;YourGithubUsername&gt;</tt> has been created under your home directory.
+This is the git repo (short for repository) for your lab assignments throughout the semester.
+
+<h2 id="upstream">Setup upstream repo</h2>
+The skeleton code for this lab and future assignments are kept in the <a href="https://github.com/nyu-cso-17fall/cso17-labs"><tt>cso17-labs</tt></a>
+managed by the course staff. Therefore, the first thing you need to do is to
+set up your own lab repo to track the changes made in the <tt>cso17-labs</tt> repo.
+In the git world, <tt>cso17-labs</tt> would be your "upstream" repo from which changes 
+flow into your own lab repo.
+
+<p>Type <tt>git remote add</tt> to add the upstream repo, and <tt>git remote -v</tt> to check that <tt>cso17-labs</tt> is indeed an upstream for your own lab repo.
+<pre>
+$ git remote add upstream https://github.com/nyu-cso-17fall/cso17-labs.git
+$ git remote -v
+origin	git@github.com:nyu-cso-17fall/labs-xxx.git (fetch)
+origin	git@github.com:nyu-cso-17fall/labs-xxx.git (push)
+upstream	https://github.com/nyu-cso-17fall/cso17-labs.git (fetch)
+upstream	https://github.com/nyu-cso-17fall/cso17-labs.git (push)
+</pre>
+
+<p>Immediately, you should check if the upstream cso17-labs repo has additional changes not present in your repo. You can check for and merge in those changes by typing:
+<pre>
+$ git fetch upstream
+$ git merge upstream/master
+</pre>
+You should perform the above two steps periodically to ensure that you've got the latest lab code. 
+We will also remind you to fetch upstream if we do changes/bug-fixes to Lab1.
+
+<h2>Completing the lab</h2>
+Go to this lab's sub-directory by typing:
+<pre>
+$ cd lab1
+</pre>
+
+This lab contains six independent exercises. The instructions for each exercise can be found in files <tt>part1.c</tt>, <tt>part2.c</tt>, <tt>...</tt>, <tt>part6.c</tt>.  Fill in your code in each of the files and test them individually.  For example, suppose you have completed the exercise in <tt>part1.c</tt>.  Test by typing the following:
+<pre>
+$ make
+$ build/part1
+variable should be 5, actually is 3!
+Aborted
+</pre>
+
+From the above error message, you can see that it did not pass the test. Debug and try again. Complete and test each part individually.
+
+<p>Once you've passed the tests for all six labs, you can double check your test-passing status by typing:
+<pre>
+$ ./grade-lab
+basic [part1.c]: 
+  set_to_five: OK
+  array_sum: OK
+bubble sort [part2.c]: 
+  swap: OK
+  bubble_sort: OK
+prime sieves [part3.c]: 
+  initialize_array: OK
+  mark_multiples: OK
+  prime_number_sieves: OK
+  find_smallest_divisor: OK
+point structure [part4.c]: 
+  set_point: OK
+  point_dist: OK
+linked list [part5.c]: 
+  list_insert: OK
+  list_end: OK
+  list_size: OK
+  list_find: OK
+  list_remove: OK
+bitwise operators [part6.c]: 
+  get_exponent_field: OK
+  clear_msb: OK
+  bit_at_index: OK
+Score: 90/90
+</pre>
+The above shows the example output of a successful full test.
+
+<h2 id="debug">Debugging Lab1</h2>
+Below is our set of advice on how to go about debugging common problems you've seen in Lab1:
+<p>Whenever you've changed a file, always type <tt>make</tt> to re-compile before executing again.</li>
+
+<p>It's a good practice to write your own test code. Don't rely solely on the lab's testing infrastructure (i.e. <tt>./grade-lab</tt>) to test the correctness of your code.  This is 
+	because we do not distribute the source code of those test code (hence you will only see <tt>clab/static/part1_harness.o</tt> and not <tt>/clab/static/part1_harness.c</tt>). 
+
+<p>Let's say you want to test the <tt>array_sum</tt> function in file <tt>part1.c</tt>. To write your own test code, create a file (e.g. called <tt>test-part1.c</tt>) with a <tt>main</tt> function that invokes <tt>array_sum</tt> in various ways to test its correctness. 
+<p>An example <tt>test-part1.c</tt> might look something like <a href="test_part1.c">this</a>.
+<p>Compile your test code by typing:
+<pre>
+$ gcc -std=c99 test_part1.c part1.c
+</pre>
+
+<p>An essential debugging tool that you should use is <tt>gdb</tt>, esp. when you hit a ``segmentation fault''.
+Let's say you have a segfault on part1. Invoke <tt>gdb</tt> by typing:
+<pre>
+$ gdb build/part1
+(gdb) bt
+</pre>
+<tt>bt</tt> is the gdb command to print the stack trace which tells you where the problematic execution occurs and how the program got there.
+<a href="https://github.com/nyu-cso-fa17/cso17-recitation/">Recitation</a> has covered the use of gdb.  There are also many tutorials online on gdb.
+
+<h2>Saving changes while you are working on Lab1</h2>
+As you modify the skeleton files to complete the lab, you should frequently save your 
+work to protect against laptop failures and other unforeseen troubles. 
+You save the changes by first "committing" them to your local lab repo and then "pushing" 
+those changes to the repo stored on github.com
+<pre>
+$ git commit -am "saving lab1 changes"
+$ git push origin
+</pre>
+
+Note that whenever you add a new file, you need to manually tell git to ``track it''.
+Otherwise, the file will not be committed by <tt>git commit</tt>. Make git track a new file by typing:
+<pre>
+$ git add &lt;my-new-file&gt;
+</pre>
+After you've pushed your changes with <tt>git push</tt>, they are safely stored on github.com.
+Even if your laptop catches on fire in the future, those pushed changes can still be retrieved.
+However, you must remember that <tt>git commit</tt> by itself does not save your changes on github.com 
+(it only saves your changes locally).  So, don't forget to type that <tt>git push origin</tt>.
+
+<p>
+To see if your local repo is up-to-date with your origin repo on github.com and vice versa, type
+<pre>
+$ git status
+</pre>
+
+<h2>Handin Procedure</h2>
+
+To handin your files, simply commit and push them to github.com 
+<pre>
+$ git commit -am "saving all my changes and handing in"
+$ git push origin 
+</pre>
+
+We will fetching your lab files from Github.com at the specified deadline and grade them.
+
+<hr>
+</html>

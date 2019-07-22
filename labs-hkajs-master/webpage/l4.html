@@ -1,0 +1,341 @@
+<html>
+<head>
+  <title>CSO Programming Assignments - Fall 2017</title>
+  <meta http-equiv="pragma" content="no-cache">
+  	<link rel="stylesheet" type="text/css" href="css/sty2.css" />
+</head>
+<div id="header">
+<h1>-- Lab4: writing a dynamic memory allocator (Due 12/03) --</h1>
+</div>
+
+<a name="labs">
+<h2>Introduction</h2>
+
+In this lab you will be writing a dynamic storage allocator for C
+programs, i.e., your own version of the <tt>malloc</tt>, <tt> free</tt> and
+<tt>realloc</tt> routines. You are encouraged to explore the design space
+creatively and implement an allocator that is correct, efficient and
+fast.
+
+<p>
+
+<h2>Obtaining the lab</h2>
+
+<font color="red">You may work in a team of two for this lab </font>
+
+<pre>
+$ cd cso-labs/ # your team's git repo if you work in a team or your own git repo if you work individually
+$ git fetch upstream 
+$ git merge upstream/master
+</pre>
+
+This creates a number of new files in subdirectory <tt>malloclab/</tt>.
+Note that:
+<ul>
+	<li> <font color="red">The only file you should modify is <tt>mm.c</tt>. </font> You do not need to fill out the team information in the beginning of mm.c
+</ul>
+
+<h2>Working on the Lab</h2>
+
+In <tt>mm.c</tt>, you should implement the following five
+functions (which are declared in <tt>mm.h</tt>)
+<pre>
+int    mm_init(void);
+void*  mm_malloc(size_t size);
+void   mm_free(void *ptr);
+void*  mm_realloc(void *ptr, size_t size);
+void   mm_checkheap(int verbose);
+</pre>
+
+The existing code in <tt>mm.c</tt> implements the simplest but
+still functionally correct malloc package that we could think
+of. Using this as a starting place, modify these functions (and
+possibly define others), so that they
+obey the following semantics:
+
+<ul>
+	<li><p><tt>mm_init</tt>: Before calling <tt>mm_malloc</tt> <tt>mm_realloc</tt> or <tt>mm_free</tt>, the application program (i.e., the
+trace-driven driver program that you will use to evaluate your
+implementation) calls <tt>mm_init</tt> to perform any necessary
+initializations, such as allocating the initial heap area.
+The return value should be -1 if there was a problem in performing the
+initialization, 0 otherwise.
+  
+<li><p><tt>mm_malloc</tt>: The <tt>mm_malloc</tt> routine returns a pointer
+to an allocated block payload of at least <tt>size</tt> bytes.  The
+entire allocated block should lie within the heap region and should
+not overlap with any other allocated chunk.
+
+<p>We will comparing your implementation to the version of <tt>malloc</tt>
+supplied in the standard C library. Since the 
+standard C library malloc always returns payload pointers that are 
+aligned to 16 bytes, your malloc implementation should do likewise
+and always return 16-byte aligned pointers.
+  
+<li><p><tt>mm_free</tt>: The <tt>mm_free</tt> routine frees the block
+pointed to by ptr.  It returns nothing. This routine is only
+guaranteed to work when the passed pointer ptr was returned by
+an earlier call to <tt>mm_malloc</tt> or <tt>mm_realloc</tt> and has not
+yet been freed.
+
+<li><p><tt>mm_realloc</tt>: The <tt>mm_realloc</tt> routine returns a pointer
+to an allocated region of at least <tt>size</tt> bytes  with the following 
+constraints. 
+
+<ul>
+	<li>if <tt>ptr</tt> is NULL, the call is equivalent to <tt>mm_malloc(size)</tt>
+
+	<li>if <tt>size</tt> is equal to zero, the call is equivalent to <tt>mm_free(ptr)}</tt>;
+
+	<li> if <tt>ptr</tt> is not NULL, it must have been returned by an
+       	earlier call to <tt>mm_malloc</tt> or <tt>mm_realloc</tt>. The call to
+	<tt>mm_realloc</tt> changes the size of the memory block pointed to by
+	<tt>ptr</tt> (i.e.the old block) to <tt>size</tt> bytes and returns the
+	address of the new block. Notice that the address of the new block
+	might be the same as the old block, or it might be different,
+	depending on your implementation, the amount of internal fragmentation
+	in the old block, and the size of the <tt>realloc</tt> request.
+
+	<li> The contents of the new block are the same as those of the old
+	<tt>ptr</tt> block, up to the minimum of the old and new sizes.
+	Everything else is uninitialized. For example, if the old block is 8
+	bytes and the new block is 12 bytes, then the first 8 bytes of the new
+	block are identical to the first 8 bytes of the old block and the last
+	4 bytes are uninitialized.  Similarly, if the old block is 8 bytes and
+	the new block is 4 bytes, then the contents of the new block are
+	identical to the first 4 bytes of the old block.  
+</ul> 
+
+<li><p>Lastly, <tt>mm_checkheap</tt>: The <tt>mm_cheapheap</tt> routine is an 
+auxilary routine that checks <a href="#heapconsistency">the consistency of 
+	your heap</a>. The function argument <tt>int verbose</tt> can be used to 
+turn on/off verbose debug printing.
+
+
+</ul>
+
+<p>The malloc,free, realloc semantics match the the semantics of the C standard library's
+malloc, realloc, and free routines.
+Type <tt>man malloc</tt> for the complete documentation.
+ 
+<p>When implementing <tt>mm_init</tt>, <tt>mm_free</tt>,
+<tt>mm_malloc</tt><tt>mm_realloc</tt> functions, you need to invoke the
+following functions which simulate the the memory system for your dynamic
+memory allocator. They are defined in <tt>memlib.c</tt>:
+
+<ul>
+	<li><p><tt> void *mem_sbrk(int incr)</tt>:   
+Expands the heap by incr bytes, where incr is a positive
+non-zero integer and returns a generic pointer to the first byte of
+the newly allocated heap area. The semantics are identical to the Unix
+<tt>sbrk</tt> function, except that <tt>mem_sbrk</tt> accepts only a
+positive non-zero integer argument.
+
+<li><p><tt> void *mem_heap_lo(void)</tt>:
+Returns a generic pointer to the first byte in the heap.
+
+<li><p><tt> void *mem_heap_hi(void)</tt>:
+Returns a generic pointer to the last byte in the heap.
+
+<li><p><tt> size_t mem_heapsize(void)</tt>:
+Returns the current size of the heap in bytes.
+
+<li><p><tt> size_t mem_pagesize(void)</tt>:
+Returns the system's page size in bytes 
+</ul>
+
+
+<h2 id="heapconsistency">Checking Heap Consistency</h2>
+
+Dynamic memory allocators are notoriously tricky beasts to program
+correctly and efficiently. They are difficult to program correctly
+because they involve a lot of untyped pointer manipulation.  We ask you 
+to write <tt>mm_checkheap</tt> to scan the heap and
+checks it for consistency.
+
+Some examples of what a heap checker might check are:
+<ul>
+<li> Is every block in the free list marked as free?
+<li> Are there any contiguous free blocks that somehow escaped
+coalescing?
+<li> Is every free block actually in the free list?
+<li> Do the pointers in the free list point to valid free blocks?
+<li> Do any allocated blocks overlap?
+<li> Do the pointers in a heap block point to valid heap
+addresses?
+</ul>
+
+Your heap checker will consists of the function <tt>void mm_heapcheck(int
+verbose)</tt>, to be implemented in <tt>mm.c</tt>.  It will check any invariants or
+consistency conditions you consider prudent.  It returns a nonzero value if and
+only if your heap is consistent.  You are not limited to the listed suggestions
+nor are you required to check all of them.  
+
+This consistency checker is for your own debugging during development.
+When you submit <tt>mm.c</tt>, make sure to remove any calls to
+<tt>mm_check</tt> as they will slow down your throughput.  Style points will be
+given for your <tt>mm_check</tt> function. 
+
+
+<h2>Testing for correctness and performance</h2>
+
+We provide you with a tester program <tt> mdriver.c</tt> 
+that tests your <tt>mm.c</tt> for correctness, space utilization, and
+throughput. 
+
+<p>The tester <tt>mdriver</tt> reads a set of <i>trace files</i>, each of which
+contains a sequence of allocate, reallocate, and free events corresponding
+to some example application workload.
+It then </tt> calls your <tt>mm_malloc</tt>, <tt>mm_realloc</tt>, and <tt>mm_free</tt> routines 
+according to the sequence of events. 
+
+<p>To run the tester, type:
+<pre>
+$ ./mdriver -V
+</pre>
+
+<p>The <tt>-V</tt> turns on verbose printing in the tester. 
+
+<p>To run the tester on one specific tracefile instead of all of the default tracefiles, type:
+<pre>
+$./mdriver -V -f tracefile
+</pre>
+This is helpful when debugging failure with a particular tracefile.
+Type <tt>$./mdriver -h</tt> to 
+see a full list of command line options. 
+
+<h2>Programming Rules</h2>
+<ul>
+	<li> You should not change any of the interfaces in <tt>mm.c</tt>.
+
+<li> You should not invoke any memory-management related library
+calls or system calls, i.e. you <b>cannot</b> use malloc, calloc, free, realloc, sbrk,
+brk or any variants of these calls in your code. You <b>may</b> use 
+memcpy and other C library functions that are not related to memory-management. In case of 
+doubt, please check with the staff on Piazza.
+
+<li> 
+You should not use any dynamically sized data
+structures such as dynamically-sized arrays, trees, or lists in your 
+program.  Yes, you can define a global array of a fixed number of elements 
+of structs, pointers or other scalars. 
+
+<li>
+For consistency with the C standard library's malloc package, which
+returns blocks aligned on 16-byte boundaries, your allocator must
+always return pointers that are aligned to 16-byte boundaries.  The
+tester will enforce this requirement for you.
+
+</ul>
+
+<h2>Programming Advice</h2>
+
+<ul>
+	<li><p><i>Use simple workloads first to debug correctness</i>: 
+	We provide two very simple trace files <tt>short{1,2}.rep</tt> to simplify debugging.
+	Type <tt>mdriver -f short1.rep</tt> to test your memory allocator on 
+	one of these workloads first.
+
+	<li><p>Use gdb. It
+will help you isolate and identify out of bounds memory references.
+
+<li><p>Understand every line of the malloc implementation in the
+textbook.  The textbook has a detailed example of a simple allocator
+based on an implicit free list. Use this is a point of departure.
+Don't start working on your allocator until you understand everything
+about the simple implicit list allocator.
+
+<li><p>Encapsulate your pointer arithmetic in C preprocessor macros.  
+Pointer arithmetic in memory managers is confusing and error-prone
+because of all the casting that is necessary. You can reduce the
+complexity significantly by writing macros for your pointer operations.
+See the textbook for examples. 
+
+<li><p>Do your implementation in stages.  The first 9 traces
+contain requests to <tt>malloc</tt> and <tt>free</tt>.  The last 2 traces
+contain requests for <tt>realloc</tt>, <tt>malloc</tt>, and <tt>free</tt>. We
+recommend that you start by getting your <tt>malloc</tt> and <tt>free</tt>
+routines working correctly and efficiently on the first 9 traces. Only
+then should you turn your attention to the <tt>realloc</tt>
+implementation.  For starters, build <tt>realloc</tt> on top of your
+existing <tt>malloc</tt> and <tt>free</tt> implementations. But to get
+really good performance, you will need to build a stand-alone <tt>
+realloc</tt>.
+
+<li><p>Use a profiler. You may find the <tt>gprof</tt> tool helpful
+for optimizing performance.
+</ul>
+
+<h2>Evaluation</h2>
+
+You will receive <b>zero points</b> if you break any of the rules or
+your code is buggy and crashes the tester.  Otherwise, your grade will
+be calculated as follows:
+
+<ul>
+	<li><p><b>Correctness (15 points)</b>. You will receive full points if your
+solution passes the correctness tests performed by the tester program.
+You will receive partial credit for each correct trace.
+
+<li><p><b>Performance (40 points)</b>.  Two performance metrics will be used
+to evaluate your solution:
+
+<ul>
+	<li><p>Space utilization: The peak ratio between the aggregate
+amount of memory used by the tester (i.e., allocated via
+<tt>mm_malloc</tt> or <tt>mm_realloc</tt> but not yet freed via
+<tt>mm_free</tt>) and the size of the heap used by your allocator. The
+optimal ratio equals to 1.  You should find good policies to minimize
+fragmentation in order to make this ratio as close as possible to the
+optimal.
+
+<li><p>Throughput: The average number of operations completed per second.
+
+<p>The tester program summarizes the performance of your
+allocator by computing a <i>performance index</i>, which is a
+weighted sum of the space utilization (U) and throughput (T)
+<pre>
+Performance index = 0.6*U + 0.4*min(1, T/T_libc)
+</pre>
+
+where U is your space utilization, T is your throughput, and
+T_libc is the measured throughput of Standard C library's malloc on your
+system on the default traces.
+
+<p>Observing that both memory and CPU cycles are expensive system
+resources, we adopt this formula to encourage balanced optimization of
+both memory utilization and throughput.  Ideally, the performance
+index will reach 100%.  
+To receive a good score,
+you must achieve a balance between utilization and throughput.
+</ul>
+
+<li><p><b>Style (10 points).</b>
+<ul>
+	<li> Please follow this <a href="http://cs61.seas.harvard.edu/wiki/2015/Style">style guide</a>.
+<li> 
+Your code should be decomposed into functions and use 
+as few global variables as possible.
+<li> 
+Your code should begin with a header comment that describes the
+structure of your free and allocated blocks, the organization of the
+free list, and how your allocator manipulates the free list.  each
+function should be preceeded by a header comment that describes what
+the function does.
+<li> 
+Your heap consistency checker <tt>mm_checkheap</tt> should be
+thorough.
+</ul>
+<p>You will be awarded 5 points for a good heap consistency checker
+and 5 points for good program structure and comments.
+</li>
+</ul>
+
+<hr>
+</body>
+</html>
+
+
+
+
+

@@ -1,0 +1,368 @@
+<html>
+<head>
+  <title>CSO Programming Assignments - Fall 2017</title>
+  <meta http-equiv="pragma" content="no-cache">
+  	<link rel="stylesheet" type="text/css" href="css/sty2.css" />
+</head>
+<div id="header">
+<h1>-- Lab2: Approximate document matching (due 10/11) --</h1>
+</div>
+
+<a name="labs">
+
+<hr>
+<h2> Introduction </h2>
+
+In many scenarios, we would like to know how ``similar'' two documents are 
+are to each other.  For example, many pages on the web are similar but not
+entirely identical to each other.  Search engines like Google or Bing need to
+group similar web pages together such that only one among a group of similar
+documents is displayed in the search result.  We refer to this process of
+measuring document similarity as <i>approximate matching</i>.
+
+In this lab, you will write a program to approximately match one input file
+against another file.  The goal is to improve your skills in programming using
+C, e.g. manipulating arrays, pointers, number and character representation, bit
+operations etc.
+
+
+<h2>Obtaining the lab code</h2>
+
+As usual, do a <tt>git pull upstream master</tt> in your cso-labs directory. This lab's files are 
+located in the <tt>lab2/</tt> subdirectory.  The files you will be modifying are 
+<tt>rkmatch.c</tt> and <tt>bloom.c</tt>.
+
+<p>Make sure that you have set up the upstream repo as described <a href="l1.html#upstream">here</a>.
+
+<h2> Part I: Exact Matching</h2>
+
+We start by solving the simpler problem of checking whether a document is an
+exact duplicate of another.  However, we will do something slightly more
+sophisticated by matching documents' raw contents character-by-character.
+In particular, we ``normalize'' (i.e. clean up) a document by doing the following:
+<ul>
+	<li>Convert all upper case letters to lower case ones. 
+	<li>Convert different white space characters (e.g. carriage return, tab,...) into the space character, 
+	<li>Shrink any sequence of two or more space characters to exactly one space.
+	<li>Remove any whitespace at the beginning and end of the text.
+</ul>
+
+As an example, consider a string 
+"I&diam;am&diam;A&diam;&diam;&diam;&diam;Dog"
+where &diam; is some white space character such as spaces, tabs, newlines etc.
+  the normalized content whould be ``i am a
+dog''.
+
+We consider document X and Y to be an exact match if their corresponding normalized
+contents are identical. 
+
+<p>
+<div id="problem">
+<b>Your job: </b>
+Implement the perfect matching algorithm.  The <tt>rkmatch.c</tt> file already contains a code skeleton with a number of helper
+procedures.  Read <tt>rkmatch.c</tt> and make sure you understand the basic
+structure of the program.  To implement the exact matching algorithm, you
+need to complete the procedures <tt>exact_match</tt> and <tt>normalize</tt>.
+
+<p>
+In <tt>rkmatch.c</tt>, the `main` procedure first invokes <tt>normalize</tt> to
+normalize the content of files X and Y.  It then invokes <tt>exact_match</tt>.  The invocation
+passes in---as part of the procedure arguments---the pointer to X's content (<tt>const char *qdoc</tt>), X's length, the pointer to Y's content (<tt>const char *doc</tt>), and Y's length.
+If X and Y are an exact match, the procedure returns 1, otherwise, it returns 0.  
+
+<p>Please read all of our scaffolding comments before coding.
+<p>
+<b>Testing:</b>  Run the given tester program <tt>./rktest.py -t exact</tt>
+</div>
+
+
+<h2>Simple Approximate Matching</h2>
+
+<p>
+Determining similarity is a much trickier business than performing exact matching.
+Let us consider a naive algorithm that measures how
+well document X (of size <i>m</i>) approximately-matches another document Y (of
+size <i>n</i>).  The algorithm considers every substring of length <i>k</i> in X and
+checks if that substring appears in document Y.  For example, if the content of
+X is "abcd" and <i>k=2</i>, then the algorithm tries to match <i>3</i> substrings
+("ab", "bc", "cd") in Y.  Suppose the algorithm counts <i>ctr</i> number of matched
+substrings.  Since there are total <i>m-k+1</i> substrings to match, the
+fraction of matched substrings is <i>ctr/(m-k+1)</i>. We can use the
+calculated fraction as the approximate match score.  Intuitively, the more
+similar file X is to Y, the higher its final score.  In particular, if file X
+is identical to Y, the final score would be <i>1.0</i>.  
+
+<p>Our naive algorithm uses a subroutine to determine whether a shorter
+string (called the query string) appears as a substring in some other longer
+string (called the destination string).  For the naive algorithm, the query string is a <i>k</i>
+character-long substring from X and the destination string is the normalized content of Y. 
+The naive way to check for substring match to compare the query string with
+<b>every</b> substring of length <i>k</i> in Y starting at position <i>0,1,2,...,(n-k)</i>.
+Thus, each query string takes <i>O(k*n)</i> time. Since there are a
+total of <i>m-k+1</i> substrings of X to be matched in Y, the total runtime of our
+approximate matching algorithm would be <i>O(k*m*n)</i>.  This runtime is
+pretty bad and we will ask you to implement a faster version of this algorithm
+that we refer to as simple approximate matching.
+
+<h3>Simple Approximate Matching</h3>
+
+<p>We observe that it is not necessary to do substring
+matching for all <i>m-k+1</i> substrings of X, as is done in the naive algorithm.  Rather, we can "chop" X 
+into m/k non-overlapping substrings (called chunks) 
+and try to match each chunk in Y.
+For example, if the content of X is "abcd" and k=2, the optimized algorithm
+only matches 2 chunks ("ab", "cd") instead of 3 substrings as in the original naive algorithm.
+Doing so cuts down the runtime by a factor of k to <i>O(m*n)</i> Note that this
+simple algorithm does not produce the exact same score as the naive algorithm
+in all scenarios, but the resulting score is close enough for practical
+purposes. We refer to this version as the simple algorithm.
+
+<div id="problem">
+	<b>Your job</b>: Implement the simple approximate matching algorithm.  You only 
+	need to add your code to <tt>rkmatch.c</tt>.  Specifically, you need to complete
+the procedures <tt>simple_substr_match</tt>.  
+<p>
+In <tt>rkmatch.c</tt>, the <tt>main</tt> procedure considers each chunk of X in turn and invokes 
+<tt>simple_substr_match</tt> to find a match in file Y.  The invocation passes in---as part of
+the procedure arguments---the pointer to the chunk, chunk's length (k), 
+the pointer to Y's content and Y's length.  If a match is found, the 
+procedure returns 1, otherwise, it returns 0.  (If a chunk of X appears many
+times in Y, the return value should still be 1.)
+
+<p>Please read all of our scaffolding comments before coding.
+<p>
+<b>Testing: </b> Run the given tester program <tt>./rktest.py -t simple</tt>
+
+</div>
+
+<h2>Rabin-Karp Approximate Matching</h2>
+
+<p>
+Our next optimization comes from using <a href="http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=5390135">Rabin-Karp
+substring matching algorithm</a> (RK for short), invented in the eighties by
+two renowned computer scientists, Michael Rabin and Richard Karp.
+
+<p>RK checks if a given query string P appears as a substring in Y.
+RK uses the idea of hashing: A hash function turns a string of arbitary length
+into a b-bit hash value with the property that collision (two different
+strings having the same hash value) is unlikely.  
+At a high level, RK works by computing a hash for the query string, hash(P), as well as a
+hash for each of the n-k+1 substrings of length k in Y, 
+hash(Y[0...k-1]), hash(Y[1...k]), ..., hash(Y[n-k...n-1]), where Y[0...k-1] is the first k characters of Y and Y[1...k] is the 
+second k characters of Y and so on.  By
+comparing hash(P) with each of the n-k+1 hashes from Y, we can determine if P
+appears as a substring in Y.  There are many nice hash functions out there
+(such as MD5, SHA-1), but unfortunately, none of them would make RK any faster
+since it takes O(k) time to compute each of the n-k+1 hashes from Y.
+
+<p>
+RK's magical ingredient is its invention of a ``rolling'' hash
+function.  Specifically, given hash(Y[i...i+k-1]), RK takes only constant
+time instead of O(k) time to compute hash(Y[i+1...i+k]).
+
+<p>
+We first describe how RK hashes a string.
+Let's treat each byte as a digit in base-d notation,  therefore, we are using base d=256.
+For example, the string 'ab' corresponds to two digits with one being 97 (the
+ASCII value of 'a'), and the other being 98 (the ASCII value of 'b').  The
+decimal value of 'ab' in base-256 can be calculated as 256*97+98 = 24930.  The
+hash of a string P in RK is hash(P[0...k-1]) =
+256<sup>k-1</sup>*P[0]+256<sup>k-2</sup>*P[1]+...+256<sup>1</sup>*P[k-2]+P[k-1].   
+
+<p>
+We now see how to 
+do a rolling calculation of the hash values for consecutive substrings of Y.  Let 
+y<sub>i</sub>=hash(Y[i...i+k-1]).  We can 
+compute y<sub>i+1</sub> from y<sub>i</sub> in constant time, by observing that
+<pre>
+y<sub>i+1</sub> = 256<sup>k-1</sup>*Y[i+1] + 256<sup>k-2</sup>*Y[i+2] + ... + Y[i+k]
+     = 256 * ( 256<sup>k-2</sup>*Y[i+1] + ... Y[i+k-1]) + Y[i+k]
+     = 256 * ((256<sup>k-1</sup>*Y[i] + 256<sup>k-2</sup>*Y[i+1] + ... Y[i+k-1]) - 256<sup>k-1</sup>*Y[i]) + Y[i+k]
+     = 256 * ( y<sub>i</sub> - 256<sup>k-1</sup> * Y[i]) + Y[i+k]
+     = 256 * y<sub>i</sub> - 256<sup>k</sup> * Y[i] + Y[i+k]
+</pre>
+
+In order to achieve constant time calculation, we have to remember the value of
+256<sup>k</sup> in a variable instead of re-computing it each time.
+
+<p>
+Now we've seen how rolling hash works.  The only fly in the ointment is that these base-256 hash values are too
+huge to work with efficiently and conveniently. Therefore, we perform 
+all the computation in modulo q, where q is chosen to be a
+large prime (food for thought: why a prime instead of non-prime?).
+Hash collisions are infrequent, but still possible.  Therefore
+once we detect some y<sub>i</sub> = hash(P), we should compare the actual strings
+Y[i...i+k-1] and P[0...k-1] to see if they are indeed identical.
+
+<p>
+Since RK speeds up substring matching to O(n) (assuming hash collusion is
+unlikely) instead of O(n*k) as in the simple algorithm.  However, we
+still need to run RK m/k times for each of the
+m/k chunks of X to be matched in Y.  Thus, our
+approximate matching algorithm using RK has an overall runtime of
+O((m/k)*n).
+
+<div id="problem">
+<p>
+<b>Your job:</b> Implement the RK substring matching algorithm by completing 
+the <tt>rabin_karp_match</tt> procedure.
+When calculating the hash values, you should use the given modulo arithmatic
+functions, <tt>madd</tt>, <tt>mdel</tt>, <tt>mmul</tt>.
+
+<p>
+As with <tt>simple_substr_match</tt>, the <tt>main</tt> procedure will invoke 
+<tt>rabin_karp_match</tt> for each chunk of X to be matched.  
+<tt>rabin_karp_match</tt> has the same interface as <tt>simple_match</tt> and should
+return 1 if the chunk appears as a substring in Y or 0 if otherwise.
+
+<p>Read the code comments carefully to guide 
+your implementation.
+
+<p>
+<b>Testing:</b> Run the given tester program <tt>./rktest.py -t rk</tt>
+</div>
+<h2> Note 1 </h2>
+<img src="cso-lab2-images-1.jpg">
+
+<h2>RK Approximate Matching with a Bloom Filter</h2>
+
+Our RK-based approximate matching algorithm has a runtime of <tt>O((m/k)*n)</tt>.
+Now we will boost its speed further by using a Bloom filter.
+
+<p>
+A Bloom filter is a bitmap of h bits initialized to zeros in the beginning.
+We insert all m/k RK hash values of X that we want to
+match into the ``filter''.  
+
+<p>
+To insert a value v into the bitmap, 
+we use <i>f</i> hash functions to map v into f positions
+in the bitmap and set each position to be one.  For example, starting with a
+10-bit bitmap and f=2, if v is mapped to positions 1,5 and v' is mapped
+to 3,9, the bitmap after inserting v,v' would be 0101010001.  There are 
+many reasonable conventions with which we can use a byte array to represent a bitmap.
+In this lab, we expect you follow one specific convention and interpret bits in
+the Big-Endian convention within a byte.  For example, we use a 2 byte array to
+represent a 10-bit bitmap. The first byte represents the first 8-bit of the
+bitmap. And the most-significant-bit of the first byte represents the first bit
+of the bitmap. The most-significant-bit of the second byte represents the 9-th
+bit of the bitmap. Suppose the bitmap is 0101010001, then the array content is
+{0x54, 0x40}.
+
+<p>After we have 
+inserted all m/k hash values of X, we proceed to calculate every y<sub>i</sub>
+in Y and check whether it *may* match any of the elements in the filter.
+This is done by mapping each y<sub>i</sub> into f positions using the same f hash functions and checking 
+whether *all*  f positions contain value 1.  If so, y<sub>i</sub> is a probable
+match.  We say the y<sub>i</sub>'s match is probable because Bloom filter
+incurs false positives in that y<sub>i</sub> may be considered to equal to some of the
+m/k hash values even though it is not. Note that the correctness of this approach relies on 
+the important property of Bloom filter that it never incurs false negatives.  Thus,
+to confirm that y<sub>i</sub> is a real match, we check whether Y[i...i+k-1] is
+indeed identical to any of the X[0...k-1]_,_X[k...2k-1]... strings.  
+
+<p>Using a Bloom filter, our enhanced algorithm has a total runtime of O(m+n)
+(assuming there are not too many false positives), significantly faster than
+our previous two versions of approximate matching!
+
+<p>You should complete this part of the lab in two steps. First, implement the bloom filter 
+functions.
+
+<div id="problem">
+<p>
+<b>Your job:</b> First implement the Bloom filter functions by 
+implementing the <tt>bloom_init</tt>, <tt>bloom_query</tt>,
+and <tt>bloom_add</tt> in the source file <tt>bloom.c</tt>.  
+
+<p>
+To help you implement <tt> bloom_add</tt> and <tt>bloom_query</tt>, 
+we provide you with a particular hash function implementation for Bloom filter,
+<tt>int hash_i(int i, long long x)</tt>.  This function will hash a given
+Rabin-Karp hash value x into an <tt>int</tt> value according to the i-th hash
+function.   The number of hash functions that you should use is given by <tt>
+	BLOOM_HASH_NUM</tt>, a global constant defined in file <tt> bloom.c</tt>.
+
+<p>Please read all of our scaffolding comments before coding.
+
+<p>
+<b>Testing:</b> After you are done with the bloom filter implementation, test its correctness with
+our test script, using the command <tt>./rktest.py -t bloom</tt>
+The test script invokes <tt>bloom_test</tt> (see its implementation in <tt> bloom_test.c</tt>) 
+to test your bloom filter implementation and it compares your output to the correct answer.
+</div>
+
+<p>Next, implement the RK algorithm using the Bloom filter functions that you just implemeneted.
+
+
+<div id="problem">
+<p>
+<b>Your job:</b>Complete the <tt> rabin_karp_batchmatch</tt>
+procedure in <tt>rkmatch.c</tt>. In the template code, we tell you the size of the bitmap to use (in bits) as a
+procedure argument (<tt>bsz</tt>).  In the <tt>rabin_karp_batchmatch</tt> procedure, you 
+should invoke the auxilary function <tt>bloom_init</tt> to allocate and
+initialize a byte array (i.e. character array) that will pack <tt>bsz</tt> bits for use as the bloom
+filter's bitmap.  You should then compute all m/k RK
+hash values corresponding to X's chunks and insert them into the Bloom filter
+using <tt>bloom_add</tt>.  Subsequently, you scan Y's content and compute a RK value for
+each of its n-k+1 substrings and query its presence in the Bloom filter using
+<tt>bloom_query</tt>.  If <tt>bloom_query</tt> indicates a potential match, you
+proceed to check that the corresponding substring of Y indeed matches one of the m/k chunks of X.  
+
+<p>
+Keep in mind that unlike <tt>simple_substr_match</tt> or <tt>rabin_karp_match</tt>,
+returning 1 or 0 is no longer sufficient; <tt>rabin_karp_batchmatch</tt> is
+invoked only once and therefore must return the total number of chunks of X
+that have appeared in Y.
+
+<p>Please read all of our scaffolding comments before coding.
+<p>
+<b>Testing: </b>  Run the given tester program <tt>./rktest.py -t rkbatch</tt> to test 
+your batch Rabin-Karp method. Once you've finished all parts of the lab, 
+you should run the full suite of tests by running the test program without
+arguments, <tt>./rktest.py</tt>.
+</div>
+<h2> Note 2 </h2>
+<img src="cso-lab2-images-2.jpg">
+
+<h2>Advice on Debugging</h2>
+In debugging lab2, it is crucial to write your own unit tests as you complete each required function along the way.
+We have provided a bare skeleton of the unit test functions and given you some example unit tests.  The unit 
+tests are in file <tt>rkmatch_test.c</tt>.  The <tt>Makefile</tt> provided compiles the unit test file and links
+with your <tt>rkmatch.c</tt> to create the executable <tt>rk_unittest</tt>.  Run the unit tests by typing:
+<pre>
+$./rk_unittest
+</pre>
+
+<h2>Style</h2>
+
+We will grade your coding style in this lab, please read <a href="http://cs61.seas.harvard.edu/wiki/2015/Style">this style guide</a> carefully and follow the advice.
+
+<h2>Evaluation</h2>
+
+Your score will be computed out of a maximum of 60 points based on the
+following distribution:
+<ul>
+	<li>Correctness points (50 total), each version of the algorithm carries 10 points.  
+	<li>Style points (10 total).  We reserve 5 points for a subjective
+evaluation of the style of your solutions, your commenting and your unit tests.  Your
+solutions should be as clean and straightforward as possible.  Your
+comments should be informative, but they need not be extensive.
+</ul>
+
+<p><font color="red">Note while the testing script will give you a good idea of 
+your final lab grade, its score does NOT constitute an assurance.
+In particular, just because they pass the tests does not necessarily mean that they implemented everything
+perfectly.</font>
+
+<h2>Handin Procedure</h2>
+
+To handin your files, simply commit and push them to github.com 
+<pre>
+$ git commit -am "Finish lab2"
+$ git push origin 
+</pre>
+
+We will fetching your lab files from Github.com at the specified deadline and grade them.
+
+</body>
+</html>

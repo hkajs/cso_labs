@@ -1,0 +1,112 @@
+body {
+	font: 93% helvetica, sans-serif;
+	background-color: #FFFFFF;
+	margin: 0;
+}
+
+table {
+	border: 0px solid #668;
+	caption-side: bottom;
+	margin-top: 1em;
+}
+
+thead tr th {
+	border-bottom: 4px solid #123456;
+}
+
+tbody tr:first-of-type td {
+	padding-top: 10px;
+}
+
+
+
+td {
+	padding: 0.1em 1.2em;
+	border-spacing: 1em;
+}
+
+col.date{
+}
+
+col.lec{
+	background: #96E6FF;
+}
+
+
+col.prep{
+	background: #D8F6FF;
+}
+
+col.assign{
+	background: #BAD5DD;
+}
+
+
+tt {
+	background: #E8E8E8;	
+	padding-left: 0.3em;
+	padding-right: 0.3em;
+}
+
+pre {
+font: monospace;
+font-size: 100%;
+background: #f7f7f7;
+margin: 1em;
+border: 1px dashed;
+padding: 1em;
+color: #000080;
+}
+
+#problem {
+font-size: 100%;
+background: #FFD1FF;
+margin: 0em;
+border: 1px;
+padding: 1em;
+}
+
+#info{
+font-size: 100%;
+background: #FFCCCC;
+margin: 0em;
+border: 0px;
+padding: 0.5em;
+}
+
+
+#header {
+  margin-left: 3em;
+	margin-right: 2em;
+	color: black;
+}
+
+#navigation {
+	position: absolute;
+	left: 1em;
+	width: 12em;
+}
+
+#content {
+	margin-left: 8em;
+	width: 1200px;
+
+}
+
+#onecolumn {
+	margin-left: 5em;
+	margin-right: 2em;
+	width: 800px;
+}
+
+#note{
+	background-color: #fff0f5;
+	border: 0px solid #668;
+	padding: 0.05em;
+	margin: 1em;
+}
+
+#deadline{
+	color: red;
+}
+
